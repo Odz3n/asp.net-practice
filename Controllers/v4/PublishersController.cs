@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using hw_2_2_3_26.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -36,13 +37,14 @@ namespace hw_2_2_3_26.Controllers.v4
         /// <summary>
         /// Retrieves the complete list of publishers.
         /// </summary>
+        /// <param name="parameters">Publisher get parameters.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A collection of <see cref="PublisherSummaryDto"/> objects.</returns>
         /// <response code="200">Returns the list of publishers.</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PublisherSummaryDto>>> Get(CancellationToken ct)
+        public async Task<ActionResult<PagedResult<PublisherSummaryDto>>> Get([FromQuery] PublisherGetParameters parameters, CancellationToken ct)
         {
-            var result = await _publisherService.GetAllPublishers(ct);
+            var result = await _publisherService.GetAllPublishers(parameters, ct);
             return Ok(result);
         }
 

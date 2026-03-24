@@ -1,6 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Extensions;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
@@ -44,12 +46,13 @@ public class PublisherService : IPublisherService
         return true;
     }
 
-    public async Task<IEnumerable<PublisherSummaryDto>> GetAllPublishers(CancellationToken ct)
+    public async Task<PagedResult<PublisherSummaryDto>> GetAllPublishers(PublisherGetParameters parameters, CancellationToken ct)
     {
         return await _db.Publishers
             .AsNoTracking()
-            .ProjectTo<PublisherSummaryDto>(_mapper.ConfigurationProvider)
-            .ToListAsync(ct);
+            .ApplyFilters(parameters)
+            .ApplySorting(parameters)
+            .ToPagedResultAsync<Publisher, PublisherSummaryDto>(parameters, _mapper.ConfigurationProvider, ct);
     }
 
     public async Task<PublisherDetailDto?> GetPublisherById(int id, CancellationToken ct)

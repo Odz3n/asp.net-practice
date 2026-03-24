@@ -1,11 +1,12 @@
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 
 namespace hw_2_2_3_26.Services;
 
 public interface IBookService
 {
-    Task<IEnumerable<BookSummaryDto>> GetAllBooks(CancellationToken ct);
+    Task<PagedResult<BookDetailDto>> GetAllBooks(BookGetParameters parameters, CancellationToken ct);
     Task<BookDetailDto?> GetBookById(int id, CancellationToken ct);
     Task<IEnumerable<BookDetailDto>> GetBooksByTitleAndAuthor(BookSearchParameters parameters, CancellationToken ct);
     Task<BookDetailDto> Create(CreateBookRequest request, CancellationToken ct);

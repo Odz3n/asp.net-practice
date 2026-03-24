@@ -1,6 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Extensions;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using hw_2_2_3_26.Services;
 using Microsoft.EntityFrameworkCore;
@@ -46,12 +48,13 @@ public class AuthorService : IAuthorService
         return true;
     }
 
-    public async Task<IEnumerable<AuthorSummaryDto>> GetAllAuthors(CancellationToken ct)
+    public async Task<PagedResult<AuthorSummaryDto>> GetAllAuthors(AuthorGetParameters parameters, CancellationToken ct)
     {
-        var query = await _db.Authors
-            .Select(el => new AuthorSummaryDto(el.Id, el.FirstName, el.LastName))
-            .ToListAsync(ct);
-        return query;
+        return await _db.Authors
+            .AsNoTracking()
+            .ApplyFilters(parameters)
+            .ApplySorting(parameters)
+            .ToPagedResultAsync<Author, AuthorSummaryDto>(parameters, _mapper.ConfigurationProvider, ct);
     }
 
     public async Task<AuthorDetailDto?> GetAuthorById(int id, CancellationToken ct)

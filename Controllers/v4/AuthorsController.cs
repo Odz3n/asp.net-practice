@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using hw_2_2_3_26.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -35,13 +36,14 @@ namespace hw_2_2_3_26.Controllers.v4
         /// <summary>
         /// Retrieves all authors.
         /// </summary>
+        /// <param name="parameters">Author get parameters.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A collection of author summary DTOs.</returns>
         /// <response code="200">Returns the list of authors.</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AuthorSummaryDto>>> Get(CancellationToken ct)
+        public async Task<ActionResult<PagedResult<AuthorSummaryDto>>> Get([FromQuery] AuthorGetParameters parameters, CancellationToken ct)
         {
-            var result = await _authorService.GetAllAuthors(ct);
+            var result = await _authorService.GetAllAuthors(parameters, ct);
             return Ok(result);
         }
 

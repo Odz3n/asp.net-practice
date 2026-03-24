@@ -4,6 +4,7 @@ using hw_2_2_3_26.Helpers.QueryParameters;
 using Microsoft.AspNetCore.Mvc;
 using hw_2_2_3_26.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using hw_2_2_3_26.Helpers.Pagination;
 
 namespace hw_2_2_3_26.Controllers.v4
 {
@@ -36,13 +37,14 @@ namespace hw_2_2_3_26.Controllers.v4
         /// <summary>
         /// Retrieves the complete list of books.
         /// </summary>
+        /// <param name="parameters">Get parameters for book.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A collection of <see cref="BookSummaryDto"/> objects.</returns>
         /// <response code="200">Returns the list of books.</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookSummaryDto>>> Get(CancellationToken ct)
+        public async Task<ActionResult<PagedResult<BookSummaryDto>>> Get([FromQuery] BookGetParameters parameters, CancellationToken ct)
         {
-            var res = await _bookService.GetAllBooks(ct);
+            var res = await _bookService.GetAllBooks(parameters, ct);
             return Ok(res);
         }
 

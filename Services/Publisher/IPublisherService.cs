@@ -1,11 +1,12 @@
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 
 namespace hw_2_2_3_26.Services;
 
 public interface IPublisherService
 {
-    Task<IEnumerable<PublisherSummaryDto>> GetAllPublishers(CancellationToken ct);
+    Task<PagedResult<PublisherSummaryDto>> GetAllPublishers(PublisherGetParameters parameters, CancellationToken ct);
     Task<PublisherDetailDto?> GetPublisherById(int id, CancellationToken ct);
     Task<IEnumerable<PublisherDetailDto>> GetPublisherBySearchParameters(PublisherSearchParameters parameters, CancellationToken ct);
     Task<PublisherSummaryDto> Create(CreatePublisherRequest request, CancellationToken ct);

@@ -1,6 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Extensions;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -64,23 +66,21 @@ public class BookService : IBookService
         return true;
     }
 
-    public async Task<IEnumerable<BookSummaryDto>> GetAllBooks(CancellationToken ct)
+    public async Task<PagedResult<BookDetailDto>> GetAllBooks(BookGetParameters parameters, CancellationToken ct)
     {
-        var query = await _db.Books
+        return await _db.Books
             .AsNoTracking()
-            .ToListAsync(ct);
-        var books = _mapper.Map<IEnumerable<BookSummaryDto>>(query);
-        return books;
+            .ApplyFilters(parameters)
+            .ApplySorting(parameters)
+            .ToPagedResultAsync<Book, BookDetailDto>(parameters, _mapper.ConfigurationProvider, ct);
     }
 
     public async Task<BookDetailDto?> GetBookById(int id, CancellationToken ct)
     {
-        var target = await _db.Books
+        return await _db.Books
             .Where(e => e.Id == id)
             .ProjectTo<BookDetailDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(ct);
-
-        return target;
     }
 
     public async Task<IEnumerable<BookDetailDto>> GetBooksByTitleAndAuthor(BookSearchParameters parameters, CancellationToken ct)
