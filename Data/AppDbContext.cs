@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MyApp.Models;
+using hw_2_2_3_26.Models;
 
 namespace MyApp.Data;
 
@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Genre> Genres { get; set; }
     public DbSet<BookGenre> BookGenres { get; set; }
     public DbSet<Country> Countries { get; set; }
+    public DbSet<Cover> Covers { get; set; }
     public DbSet<Publisher> Publishers { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +25,14 @@ public class AppDbContext : DbContext
             .WithMany(p => p.Books)
             .HasForeignKey(e => e.PublisherId)
             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Cover>(e =>
+        {
+            e.HasOne(c => c.Book)
+            .WithMany(b => b.Covers)
+            .HasForeignKey(c => c.BookId)
+            .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BookAuthor>(e =>

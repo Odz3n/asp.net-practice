@@ -20,6 +20,7 @@ public record CreateBookRequest
     
     DateTime CreatedAt,
 
-    ICollection<int> AuthorIds,
-    ICollection<int> GenreIds
+    ICollection<int>? AuthorIds,
+    ICollection<int>? GenreIds,
+    ICollection<IFormFile>? Covers
 );

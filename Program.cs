@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using MyApp.Data;
 using hw_2_2_3_26.Services;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
@@ -29,6 +30,7 @@ builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IPublisherService, PublisherService>();
+builder.Services.AddScoped<FileService>();
 
 builder.Services.AddAutoMapper(cfg => {}, typeof(Program));
 
@@ -38,10 +40,8 @@ builder.Services.AddSwaggerGen(options =>
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     options.IncludeXmlComments(xmlPath);
     options.EnableAnnotations();
-    // options.SwaggerDoc("v1", new OpenApiInfo { Title = "API V1", Version = "v1" });
-    // options.SwaggerDoc("v2", new OpenApiInfo { Title = "API V2", Version = "v2" });
-    options.SwaggerDoc("v3", new OpenApiInfo { Title = "API V3", Version = "v3" });
-    options.SwaggerDoc("v4", new OpenApiInfo { Title = "API V4", Version = "v4" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "API V1", Version = "v1" });
+    options.SwaggerDoc("v2", new OpenApiInfo { Title = "API V2", Version = "v2" });
 });
 var app = builder.Build();
 
@@ -58,6 +58,13 @@ if (app.Environment.IsDevelopment())
         }
     });
 }
+
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
+    RequestPath = "/uploads"
+});
 
 app.MapGet("/", () => "Hello World!");
 app.MapControllers();

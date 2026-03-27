@@ -1,6 +1,6 @@
 using AutoMapper;
 using hw_2_2_3_26.DTO;
-using MyApp.Models;
+using hw_2_2_3_26.Models;
 
 namespace hw_2_2_3_26.Profiles;
 
@@ -90,6 +90,9 @@ public class BookProfile : Profile
                 opts.Condition((src, dest, srcMember) => srcMember != null);
             });
 
+        // COVER
+        CreateMap<Cover, CoverSummaryDto>();
+
         // BOOK
         CreateMap<Book, BookDetailDto>()
             .ForMember(dest => dest.Publisher,
@@ -99,15 +102,20 @@ public class BookProfile : Profile
                     .Select(ba => ba.Author)))
             .ForMember(dest => dest.Genres,
                 opts => opts.MapFrom(src => src.BookGenres
-                    .Select(bg => bg.Genre)));
+                    .Select(bg => bg.Genre)))
+            .ForMember(dest => dest.Covers,
+                opts => opts.MapFrom(src => src.Covers));
 
-        CreateMap<Book, BookSummaryDto>();
+        CreateMap<Book, BookSummaryDto>()
+            .ForMember(dest => dest.Covers, opts =>
+                opts.MapFrom(src => src.Covers));
 
         CreateMap<CreateBookRequest, Book>()
             .ForMember(dest => dest.CreatedAt,
                 opts => opts.MapFrom(_ => DateTime.UtcNow))
             .ForMember(dest => dest.BookAuthors, opts => opts.Ignore())
-            .ForMember(dest => dest.BookGenres, opts => opts.Ignore());
+            .ForMember(dest => dest.BookGenres, opts => opts.Ignore())
+            .ForMember(dest => dest.Covers, opts => opts.Ignore());
 
         CreateMap<UpdateBookRequest, Book>()
             .ForMember(dest => dest.Title, opts =>
@@ -131,6 +139,7 @@ public class BookProfile : Profile
                     opts.MapFrom(src => src.PublisherId);
                 })
             .ForMember(dest => dest.BookAuthors, opts => opts.Ignore())
-            .ForMember(dest => dest.BookGenres, opts => opts.Ignore());
+            .ForMember(dest => dest.BookGenres, opts => opts.Ignore())
+            .ForMember(dest => dest.Covers, opts => opts.Ignore());
     }
 }

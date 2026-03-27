@@ -6,16 +6,16 @@ using hw_2_2_3_26.Services;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace hw_2_2_3_26.Controllers.v4
+namespace hw_2_2_3_26.Controllers.v2
 {
     /// <summary>
     /// Provides API endpoints for managing authors.
     /// </summary>
     /// <remarks>
     /// Supports retrieving, searching, creating, updating, and deleting authors.
-    /// API Version: 4.0
+    /// API Version: 2.0
     /// </remarks>
-    [ApiVersion("4.0")]
+    [ApiVersion("2.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     [Produces("application/json")]

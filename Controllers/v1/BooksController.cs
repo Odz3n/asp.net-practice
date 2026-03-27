@@ -1,135 +1,217 @@
-// using Asp.Versioning;
-// using Microsoft.AspNetCore.Mvc;
-// using MyApp.Models;
-// using Swashbuckle.AspNetCore.Annotations;
+using Asp.Versioning;
+using AutoMapper;
+using hw_2_2_3_26.DTO;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Data;
+using hw_2_2_3_26.Models;
+using Swashbuckle.AspNetCore.Annotations;
 
-// namespace MyApp.Controllers.v1
-// {
-//     [ApiVersion("1.0")]
-//     [Route("api/v{version:apiVersion}/[controller]")]
-//     [ApiController]
-//     [Produces("application/json")]
-//     [SwaggerTag("Provides API endpoints for managing books.")]
-//     public class BooksController : ControllerBase
-//     {
-//         private static List<Book> _books = new()
-//         {
-//             new Book { Id = 0, Title = "1984", AuthorFirstName = "George", AuthorLastName = "Orwell", Year = 1949, Genre = "Dystopian", PageCount = 328 },
-//             new Book { Id = 1, Title = "Animal Farm", AuthorFirstName = "George", AuthorLastName = "Orwell", Year = 1945, Genre = "Political Satire", PageCount = 112 },
-//             new Book { Id = 2, Title = "The Hobbit", AuthorFirstName = "J.R.R.", AuthorLastName = "Tolkien", Year = 1937, Genre = "Fantasy", PageCount = 310 },
-//             new Book { Id = 3, Title = "The Lord of the Rings: The Fellowship of the Ring", AuthorFirstName = "J.R.R.", AuthorLastName = "Tolkien", Year = 1954, Genre = "Fantasy", PageCount = 423 },
-//             new Book { Id = 4, Title = "The Lord of the Rings: The Two Towers", AuthorFirstName = "J.R.R.", AuthorLastName = "Tolkien", Year = 1954, Genre = "Fantasy", PageCount = 352 },
-//             new Book { Id = 5, Title = "The Lord of the Rings: The Return of the King", AuthorFirstName = "J.R.R.", AuthorLastName = "Tolkien", Year = 1955, Genre = "Fantasy", PageCount = 416 },
-//             new Book { Id = 6, Title = "Fahrenheit 451", AuthorFirstName = "Ray", AuthorLastName = "Bradbury", Year = 1953, Genre = "Dystopian", PageCount = 194 },
-//             new Book { Id = 7, Title = "Brave New World", AuthorFirstName = "Aldous", AuthorLastName = "Huxley", Year = 1932, Genre = "Science Fiction", PageCount = 311 },
-//             new Book { Id = 8, Title = "The Catcher in the Rye", AuthorFirstName = "J.D.", AuthorLastName = "Salinger", Year = 1951, Genre = "Literary Fiction", PageCount = 277 },
-//             new Book { Id = 9, Title = "Harry Potter and the Philosopher's Stone", AuthorFirstName = "J.K.", AuthorLastName = "Rowling", Year = 1997, Genre = "Fantasy", PageCount = 223 },
-//             new Book { Id = 10, Title = "Harry Potter and the Chamber of Secrets", AuthorFirstName = "J.K.", AuthorLastName = "Rowling", Year = 1998, Genre = "Fantasy", PageCount = 251 },
-//             new Book { Id = 11, Title = "Harry Potter and the Prisoner of Azkaban", AuthorFirstName = "J.K.", AuthorLastName = "Rowling", Year = 1999, Genre = "Fantasy", PageCount = 317 },
-//             new Book { Id = 12, Title = "The Silmarillion", AuthorFirstName = "J.R.R.", AuthorLastName = "Tolkien", Year = 1977, Genre = "Fantasy", PageCount = 365 },
-//             new Book { Id = 13, Title = "The Old Man and the Sea", AuthorFirstName = "Ernest", AuthorLastName = "Hemingway", Year = 1952, Genre = "Literary Fiction", PageCount = 127 }
-//         };
+namespace MyApp.Controllers.v1
+{
+    /// <summary>
+    /// Provides API endpoints for managing books (API Version 1).
+    /// </summary>
+    /// <remarks>
+    /// This controller allows clients to retrieve, search, create, update,
+    /// and delete books stored in the in-memory collection.
+    /// </remarks>
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiController]
+    [Produces("application/json")]
+    [SwaggerTag("Provides API endpoints for managing books.")]
+    public class BooksController : ControllerBase
+    {
+        private readonly IMapper _mapper;
+        private readonly AppDbContext _db;
+        public BooksController(IMapper mapper, AppDbContext db)
+        {
+            _mapper = mapper;
+            _db = db;
+        }
 
-//         [HttpGet]
-//         [ProducesResponseType(StatusCodes.Status200OK)]
-//         public ActionResult<IEnumerable<Book>> GetBooks()
-//         {
-//             return Ok(_books);
-//         }
+        /// <summary>
+        /// Retrieves the complete list of books.
+        /// </summary>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>A collection of <see cref="BookSummaryDto"/> objects.</returns>
+        /// <response code="200">Returns the list of books.</response>
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<BookSummaryDto>>> GetBooks(CancellationToken ct)
+        {
+            var books = await _db.Books.AsNoTracking().ToListAsync(ct);
+            var summary = _mapper.Map<IEnumerable<BookSummaryDto>>(books);
+            return Ok(summary);
+        }
 
-//         [HttpGet("{id:int}")]
-//         [ProducesResponseType(StatusCodes.Status200OK)]
-//         [ProducesResponseType(StatusCodes.Status404NotFound)]
-//         public ActionResult<Book> GetById(int id)
-//         {
-//             var target = _books.FirstOrDefault(b => b.Id == id);
+        /// <summary>
+        /// Retrieves a book by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the book.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>The matching <see cref="BookDetailDto"/> if found.</returns>
+        /// <response code="200">The book was successfully found.</response>
+        /// <response code="404">No book with the specified id exists.</response>
+        [HttpGet("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<BookDetailDto>> GetById(int id, CancellationToken ct)
+        {
+            var target = await _db.Books.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id, ct);
 
-//             if (target == null)
-//                 return NotFound("Book not found.");
+            if (target == null)
+                return NotFound("Book not found.");
 
-//             return Ok(target);
-//         }
+            var detail = _mapper.Map<BookDetailDto>(target);
+            return Ok(detail);
+        }
 
-//         [HttpGet("search")]
-//         [ProducesResponseType(StatusCodes.Status200OK)]
-//         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-//         public ActionResult<IEnumerable<Book>> GetByTitleAndAuthor([FromQuery] string? title, string? author)
-//         {
-//             if (string.IsNullOrWhiteSpace(title))
-//                 return BadRequest("Search target title must be provided.");
+        /// <summary>
+        /// Searches for books by title and optionally by author.
+        /// </summary>
+        /// <param name="title">The title or part of the title to search for.</param>
+        /// <param name="author">Optional author name used to further filter the results.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>A collection of books matching the search criteria.</returns>
+        /// <remarks>
+        /// Title is required for the search operation.  
+        /// Author is optional and will be used as an additional filter if provided.
+        /// </remarks>
+        /// <response code="200">Returns the list of matching books.</response>
+        /// <response code="400">Title parameter was not provided.</response>
+        [HttpGet("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IEnumerable<BookDetailDto>>> GetByTitleAndAuthor([FromQuery] string? title, [FromQuery] string? author, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return BadRequest(new { error = "Search target title must be provided." });
 
-//             var query = _books.Where(b =>
-//                 b.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+            var query = _db.Books
+                .AsNoTracking()
+                .Where(b => b.Title.ToLower().Contains(title.ToLower()));
 
-//             if (!string.IsNullOrWhiteSpace(author))
-//             {
-//                 var books = query.Where(b =>
-//                     b.AuthorFirstName.Contains(author, StringComparison.OrdinalIgnoreCase) ||
-//                     b.AuthorLastName.Contains(author, StringComparison.OrdinalIgnoreCase));
+            // if (!string.IsNullOrWhiteSpace(author))
+            // {
+            //     query = query.Where(b =>
+            //         (b.AuthorFirstName + " " + b.AuthorLastName)
+            //         .ToLower()
+            //         .Contains(author.ToLower()));
+            // }
 
-//                 return Ok(books);
-//             }
+            var books = await query.ToListAsync(ct);
 
-//             return Ok(query);
-//         }
+            var result = _mapper.Map<IEnumerable<BookDetailDto>>(books);
 
-//         [HttpPost]
-//         [ProducesResponseType(StatusCodes.Status201Created)]
-//         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-//         public ActionResult<Book> Create([FromBody] Book book)
-//         {
-//             if (book == null)
-//                 return BadRequest("Book's data must be provided.");
+            return Ok(result);
+        }
 
-//             var newBook = new Book
-//             {
-//                 Id = _books.Max(b => b.Id) + 1,
-//                 Title = book.Title,
-//                 AuthorFirstName = book.AuthorFirstName,
-//                 AuthorLastName = book.AuthorLastName,
-//                 Year = book.Year
-//             };
+        /// <summary>
+        /// Creates a new book.
+        /// </summary>
+        /// <param name="book">The book object containing data for the new book.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>The newly created <see cref="Book"/>.</returns>
+        /// <response code="201">Book was successfully created.</response>
+        /// <response code="400">Invalid book data was provided.</response>
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<BookDetailDto>> Create([FromBody] CreateBookRequest book, CancellationToken ct)
+        {
+            if (book == null)
+                return BadRequest(new { error = "Book's data must be provided." });
 
-//             _books.Add(newBook);
+            var newBook = _mapper.Map<Book>(book);
 
-//             return CreatedAtAction(nameof(GetById), new { Id = newBook.Id }, newBook);
-//         }
+            await _db.Books.AddAsync(newBook, ct);
+            await _db.SaveChangesAsync(ct);
 
-//         [HttpPut("{id:int}")]
-//         [ProducesResponseType(StatusCodes.Status204NoContent)]
-//         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-//         [ProducesResponseType(StatusCodes.Status404NotFound)]
-//         public IActionResult UpdateById(int id, [FromBody] Book book)
-//         {
-//             if (book == null)
-//                 return BadRequest("Book data must be provided.");
+            var bookDetail = _mapper.Map<BookDetailDto>(newBook);
+            return CreatedAtAction(nameof(GetById), new { id = bookDetail.Id }, bookDetail);
+        }
 
-//             var target = _books.FirstOrDefault(b => b.Id == id);
+        /// <summary>
+        /// Updates an existing book by its identifier.
+        /// </summary>
+        /// <param name="id">The identifier of the book to update.</param>
+        /// <param name="book">The updated book data.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>No content if the update was successful.</returns>
+        /// <response code="204">Book was successfully updated.</response>
+        /// <response code="400">Invalid book data was provided.</response>
+        /// <response code="404">Book with the specified id was not found.</response>
+        [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> PutUpdateById(int id, [FromBody] CreateBookRequest book, CancellationToken ct)
+        {
+            if (book == null)
+                return BadRequest("Book data must be provided.");
 
-//             if (target == null)
-//                 return NotFound("Book not found.");
+            var target = await _db.Books.FirstOrDefaultAsync(b => b.Id == id, ct);
 
-//             target.Title = book.Title;
-//             target.AuthorFirstName = book.AuthorFirstName;
-//             target.AuthorLastName = book.AuthorLastName;
-//             target.Year = book.Year;
+            if (target == null)
+                return NotFound("Book not found.");
 
-//             return NoContent();
-//         }
+            _mapper.Map(book, target);
+            await _db.SaveChangesAsync(ct);
+            return NoContent();
+        }
 
-//         [HttpDelete("{id:int}")]
-//         [ProducesResponseType(StatusCodes.Status204NoContent)]
-//         [ProducesResponseType(StatusCodes.Status404NotFound)]
-//         public IActionResult DeleteById(int id)
-//         {
-//             var target = _books.FirstOrDefault(b => b.Id == id);
+        /// <summary>
+        /// Partially updates an existing book by its identifier.
+        /// </summary>
+        /// <param name="id">The identifier of the book to update.</param>
+        /// <param name="book">The updated book data.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>No content if the update was successful.</returns>
+        /// <response code="204">Book was successfully updated.</response>
+        /// <response code="400">Invalid book data was provided.</response>
+        /// <response code="404">Book with the specified id was not found.</response>
+        [HttpPatch("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> PatchUpdateById(int id, [FromBody] UpdateBookRequest book, CancellationToken ct)
+        {
+            if (book == null)
+                return BadRequest("Book data must be provided.");
 
-//             if (target == null)
-//                 return NotFound("Book not found.");
+            var target = await _db.Books.FirstOrDefaultAsync(b => b.Id == id, ct);
 
-//             _books.Remove(target);
+            if (target == null)
+                return NotFound("Book not found.");
 
-//             return NoContent();
-//         }
-//     }
-// }
+            _mapper.Map(book, target);
+            await _db.SaveChangesAsync(ct);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Deletes a book by its identifier.
+        /// </summary>
+        /// <param name="id">The identifier of the book to delete.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>No content if the deletion was successful.</returns>
+        /// <response code="204">Book was successfully deleted.</response>
+        /// <response code="404">Book with the specified id was not found.</response>
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteById(int id, CancellationToken ct)
+        {
+            var target = await _db.Books.FirstOrDefaultAsync(b => b.Id == id, ct);
+
+            if (target == null)
+                return NotFound("Book not found.");
+
+            _db.Books.Remove(target);
+            await _db.SaveChangesAsync(ct);
+            return NoContent();
+        }
+    }
+}

@@ -7,7 +7,7 @@ using hw_2_2_3_26.Helpers.QueryParameters;
 using hw_2_2_3_26.Services;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
-using MyApp.Models;
+using hw_2_2_3_26.Models;
 
 public class AuthorService : IAuthorService
 {

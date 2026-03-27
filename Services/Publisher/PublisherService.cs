@@ -6,7 +6,7 @@ using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
-using MyApp.Models;
+using hw_2_2_3_26.Models;
 
 namespace hw_2_2_3_26.Services;
 

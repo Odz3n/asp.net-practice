@@ -17,5 +17,6 @@ public record UpdateBookRequest
     int? PublisherId,
 
     ICollection<int>? AuthorIds,
-    ICollection<int>? GenreIds
+    ICollection<int>? GenreIds,
+    ICollection<IFormFile>? Covers
 );

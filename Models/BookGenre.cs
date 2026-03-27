@@ -1,4 +1,4 @@
-namespace MyApp.Models;
+namespace hw_2_2_3_26.Models;
 
 public class BookGenre
 {
