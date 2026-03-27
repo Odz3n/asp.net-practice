@@ -6,7 +6,6 @@ public class PublisherDetailDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = null!;
-    public int? CountryId { get; set; }
     public CountrySummaryDto? Country { get; set; }
     public DateTime? FoundedAt { get; set; }
     public ICollection<BookSummaryDto> Books { get; set; } = new List<BookSummaryDto>();

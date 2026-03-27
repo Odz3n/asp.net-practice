@@ -91,7 +91,6 @@ public class BookService : IBookService
         await _fileService.DeleteEntityDirectoryAsync(
             ContentType.Books,
             target.Id,
-            target.Title,
             ct
         );
 

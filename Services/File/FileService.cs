@@ -53,8 +53,8 @@ public class FileService
         var contentTypeName = contentType.ToString().ToLowerInvariant();
         var subContentTypeName = subContentType.ToString().ToLowerInvariant();
 
-        // Create folder structure: uploads/{contentType}/{id}-{slug}/{subContentType}/
-        var contentFolder = Path.Combine(_uploadsRoot, contentTypeName, $"{targetId}-{slug}");
+        // Create folder structure: uploads/{contentType}/{id}/{subContentType}/
+        var contentFolder = Path.Combine(_uploadsRoot, contentTypeName, $"{targetId}");
         var targetFolder = Path.Combine(contentFolder, subContentTypeName);
 
         Directory.CreateDirectory(targetFolder);
@@ -69,7 +69,7 @@ public class FileService
             await file.CopyToAsync(stream, ct);
         }
 
-        return Path.Combine(contentTypeName, $"{targetId}-{slug}", subContentTypeName, fileName)
+        return Path.Combine(contentTypeName, $"{targetId}", subContentTypeName, fileName)
             .Replace('\\', '/');
     }
 
@@ -104,12 +104,10 @@ public class FileService
     public async Task<bool> DeleteEntityDirectoryAsync(
         ContentType contentType,
         int entityId,
-        string entityTitle,
         CancellationToken ct)
     {
-        var slug = GenerateSlug(entityTitle);
         var contentTypeName = contentType.ToString().ToLowerInvariant();
-        var entityFolder = Path.Combine(_uploadsRoot, contentTypeName, $"{entityId}-{slug}");
+        var entityFolder = Path.Combine(_uploadsRoot, contentTypeName, $"{entityId}");
         if (!Directory.Exists(entityFolder))
             return false;
 
