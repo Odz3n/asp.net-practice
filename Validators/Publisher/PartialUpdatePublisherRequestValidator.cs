@@ -46,6 +46,10 @@ public class PartialUpdatePublisherRequestValidator : AbstractValidator<PartialU
 
         When(p => p.BookIds != null && p.BookIds.Any(), () =>
         {
+            RuleFor(p => p.BookIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count())
+                .WithMessage("Duplicate book IDs are not allowed");
+                
             RuleForEach(p => p.BookIds)
                 .GreaterThan(0)
                     .WithMessage("Book ID must be greater than zero")

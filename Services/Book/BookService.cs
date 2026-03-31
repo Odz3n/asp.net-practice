@@ -4,8 +4,6 @@ using hw_2_2_3_26.DTO;
 using hw_2_2_3_26.Helpers.Extensions;
 using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
-using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
 using hw_2_2_3_26.Models;
 using hw_2_2_3_26.Repository;
 
@@ -14,13 +12,11 @@ namespace hw_2_2_3_26.Services;
 public class BookService : IBookService
 {
     private readonly IMapper _mapper;
-    private readonly AppDbContext _db;
     private readonly FileService _fileService;
     private readonly IBookRepository _bookRepository;
-    public BookService(IMapper mapper, AppDbContext db, FileService fileService, IBookRepository bookRepository)
+    public BookService(IMapper mapper, FileService fileService, IBookRepository bookRepository)
     {
         _mapper = mapper;
-        _db = db;
         _fileService = fileService;
         _bookRepository = bookRepository;
     }
@@ -28,36 +24,25 @@ public class BookService : IBookService
     {
         var newBook = _mapper.Map<Book>(request);
 
-        // auto-map of book Authors and Genres is ignored in profile
-        // and handled there manually
-        newBook.BookAuthors = request.AuthorIds
-            .Select(id => new BookAuthor { AuthorId = id })
-            .ToList();
+        if (request.AuthorIds != null)
+            _bookRepository.UpdateBookAuthors(newBook, request.AuthorIds);
+        if (request.GenreIds != null)
+            _bookRepository.UpdateBookGenres(newBook, request.GenreIds);
 
-        newBook.BookGenres = request.GenreIds
-            .Select(id => new BookGenre { GenreId = id })
-            .ToList();
+        await _bookRepository.AddBookAsync(newBook, ct);
+        // Save beforehead to get ID early
+        await _bookRepository.SaveChangesAsync(ct);
 
-        await _db.Books.AddAsync(newBook, ct);
-        await _db.SaveChangesAsync(ct);
+        if (request.Covers != null)
+            await UpdateBookCovers(newBook, request.Covers, ct);
 
-        await UpdateCovers(
-            newBook.Covers,
-            request.Covers,
-            newBook.Id,
-            newBook.Title,
-            ct);
-
-        await _db.SaveChangesAsync(ct);
+        await _bookRepository.SaveChangesAsync(ct);
         return _mapper.Map<Book, BookDetailDto>(newBook);
     }
 
     public async Task<bool> Delete(int id, CancellationToken ct)
     {
-        var target = await _db.Books
-            .Where(b => b.Id == id)
-            .Include(b => b.Covers)
-            .FirstOrDefaultAsync(ct);
+        var target = await _bookRepository.GetTrackedBookByIdAsync(id, ct);
 
         if (target == null)
             throw new KeyNotFoundException("Book not found");
@@ -71,8 +56,8 @@ public class BookService : IBookService
             target.Id,
             ct);
 
-        _db.Books.Remove(target);
-        await _db.SaveChangesAsync(ct);
+        await _bookRepository.RemoveBook(target, ct);
+        await _bookRepository.SaveChangesAsync(ct);
 
         return true;
     }
@@ -100,141 +85,65 @@ public class BookService : IBookService
     {
         if (string.IsNullOrWhiteSpace(parameters.Title))
             throw new ArgumentException("Title is required");
-
-        var query = _db.Books
-            .AsNoTracking()
-            .Where(b => b.Title.ToLowerInvariant().Contains(parameters.Title.ToLowerInvariant()));
-
-        if (!string.IsNullOrWhiteSpace(parameters.Author))
-        {
-            query = query.Where(b =>
-                b.BookAuthors.Any(ba =>
-                    (ba.Author.FirstName + " " + ba.Author.LastName)
-                    .Contains(parameters.Author)));
-        }
-
-        return await query
-            .ProjectTo<BookDetailDto>(_mapper.ConfigurationProvider)
-            .ToListAsync(ct);
+        var query = _bookRepository.GetUntrackedBooksBySearchParameters(parameters);
+        return query.ProjectTo<BookDetailDto>(_mapper.ConfigurationProvider);
     }
 
     public async Task<bool> PartialUpdate(int id, UpdateBookRequest request, CancellationToken ct)
     {
-        var target = await _db.Books
-            .Where(el => el.Id == id)
-            .Include(el => el.BookAuthors)
-            .Include(el => el.BookGenres)
-            .Include(el => el.Covers)
-            .FirstOrDefaultAsync(ct);
+        var target = await _bookRepository.GetTrackedBookByIdAsync(id, ct);
 
         if (target == null)
             throw new KeyNotFoundException("Book not found");
 
-
         _mapper.Map(request, target);
 
         if (request.AuthorIds != null)
-        {
-            UpdateCollection(
-                target.BookAuthors,
-                request.AuthorIds,
-                ba => ba.AuthorId,
-                id => new BookAuthor { AuthorId = id }
-            );
-        }
-
+            _bookRepository.UpdateBookAuthors(target, request.AuthorIds);
         if (request.GenreIds != null)
-        {
-            UpdateCollection(
-                target.BookGenres,
-                request.GenreIds,
-                bg => bg.GenreId,
-                id => new BookGenre { GenreId = id }
-            );
-        }
-
+            _bookRepository.UpdateBookGenres(target, request.GenreIds);
         if (request.Covers != null)
-            await UpdateCovers(
-                target.Covers,
-                request.Covers,
-                target.Id,
-                target.Title,
-                ct);
+            await UpdateBookCovers(target, request.Covers, ct);
 
-        await _db.SaveChangesAsync(ct);
+        await _bookRepository.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<bool> Update(int id, CreateBookRequest request, CancellationToken ct)
     {
-        var target = await _db.Books
-            .Where(b => b.Id == id)
-            .Include(b => b.BookAuthors)
-            .Include(b => b.BookGenres)
-            .Include(b => b.Covers)
-            .FirstOrDefaultAsync(ct);
+        var target = await _bookRepository.GetTrackedBookByIdAsync(id, ct);
 
         if (target == null)
             throw new KeyNotFoundException("Book not found");
 
         _mapper.Map(request, target);
 
-        UpdateCollection(
-            target.BookAuthors,
-            request.AuthorIds,
-            ba => ba.AuthorId,
-            id => new BookAuthor { AuthorId = id }
-        );
+        if (request.AuthorIds != null)
+            _bookRepository.UpdateBookAuthors(target, request.AuthorIds);
+        if (request.GenreIds != null)
+            _bookRepository.UpdateBookGenres(target, request.GenreIds);
+        if (request.Covers != null)
+            await UpdateBookCovers(target, request.Covers, ct);
 
-        UpdateCollection(
-            target.BookGenres,
-            request.GenreIds,
-            bg => bg.GenreId,
-            id => new BookGenre { GenreId = id }
-        );
-
-
-        await UpdateCovers(
-            target.Covers,
-            request.Covers,
-            target.Id,
-            target.Title,
-            ct);
-
-        await _db.SaveChangesAsync(ct);
+        await _bookRepository.SaveChangesAsync(ct);
         return true;
     }
     public async Task<bool> BookExists(int id, CancellationToken ct)
     {
-        return await _db.Books.AnyAsync(el => el.Id == id, ct);
+        return await _bookRepository.BookExists(id, ct);
     }
-    private void UpdateCollection<TEntity, TValue>(
-        ICollection<TEntity> collection,
-        IEnumerable<TValue> validIds,
-        Func<TEntity, TValue> getId,
-        Func<TValue, TEntity> createEntity
-    ) where TEntity : class
+    private async Task UpdateBookCovers(Book book, IEnumerable<IFormFile> covers, CancellationToken ct)
     {
-        var validIdsList = validIds.ToList();
-        var toRemove = collection
-            .Where(item => !validIdsList.Contains(getId(item)))
-            .ToList();
-
-        foreach (var item in toRemove)
-            collection.Remove(item);
-
-        var existingIds = collection.Select(getId).ToList();
-        var idsToAdd = validIdsList.Except(existingIds).ToList();
-
-        foreach (var id in idsToAdd)
-            collection.Add(createEntity(id));
+        await UpdateCovers(
+            book.Covers,
+            covers,
+            book.Id,
+            ct);
     }
-
     private async Task UpdateCovers(
         ICollection<Cover> collection,
         IEnumerable<IFormFile>? files,
         int entityId,
-        string entityTitle,
         CancellationToken ct)
     {
         foreach (var oldCover in collection)

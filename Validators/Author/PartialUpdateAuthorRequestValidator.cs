@@ -44,8 +44,12 @@ public class PartialUpdateAuthorRequestValidator : AbstractValidator<PartialUpda
                     return await _countryService.CountryExists(countryId, ct);
                 }).WithMessage("Country with ID {PropertyValue} does not exist.");
         });
-        When(b => b.BookIds != null && b.BookIds.Any(), () =>
+        When(a => a.BookIds != null && a.BookIds.Any(), () =>
         {
+            RuleFor(a => a.BookIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count())
+                    .WithMessage("Duplicate book IDs are not allowed");
+
             RuleForEach(a => a.BookIds)
                 .GreaterThan(0)
                     .WithMessage("Book ID must be greater than zero.")

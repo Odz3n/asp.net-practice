@@ -16,11 +16,15 @@ public class PartialUpdateGenreRequestValidator : AbstractValidator<PartialUpdat
             RuleFor(g => g.Name)
                 .NotNull().WithMessage("Name can not be null")
                 .NotEmpty().WithMessage("Name can not be empty")
-                .MaximumLength(50).WithMessage("Name length cannot be longer than 50 characters.");
+                .MaximumLength(50).WithMessage("Name length cannot be longer than 50 characters");
         });
 
         When(g => g.BookIds != null && g.BookIds.Any(), () =>
         {
+            RuleFor(g => g.BookIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count())
+                .WithMessage("Duplicate book IDs are not allowed");
+
             RuleForEach(g => g.BookIds)
                 .GreaterThan(0)
                     .WithMessage("Book ID must be greater than zero")

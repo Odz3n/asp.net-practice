@@ -14,30 +14,32 @@ public class CreateCountryRequestValidator : AbstractValidator<CreateCountryRequ
         _publisherService = publisherService;
 
         RuleFor(c => c.Name)
-            .NotNull().WithMessage("Name can not be null")
-            .NotEmpty().WithMessage("Name can not be empty")
-            .MaximumLength(60).WithMessage("Name length cannot be longer than 60 characters.");
+            .NotNull().WithMessage("Name cannot be null")
+            .NotEmpty().WithMessage("Name cannot be empty")
+            .MaximumLength(60).WithMessage("Name length cannot be longer than 60 characters");
 
         When(c => c.AuthorIds != null && c.AuthorIds.Any(), () =>
         {
-            RuleForEach(c => c.AuthorIds)
-                .GreaterThan(0)
-                    .WithMessage("Author ID must be greater than zero")
-                .MustAsync(async (authorId, ct) =>
-                {
-                    return await _authorService.AuthorExists(authorId, ct);
-                }).WithMessage("Author with ID {PropertyValue} does not exist.");
+            RuleFor(c => c.AuthorIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count())
+                .WithMessage("Duplicate author IDs are not allowed");
 
+            RuleForEach(c => c.AuthorIds)
+                .GreaterThan(0).WithMessage("Author ID must be greater than zero")
+                .MustAsync(async (id, ct) => await _authorService.AuthorExists(id, ct))
+                .WithMessage("Author with ID {PropertyValue} does not exist");
         });
+
         When(c => c.PublisherIds != null && c.PublisherIds.Any(), () =>
         {
+            RuleFor(c => c.PublisherIds)
+                .Must(ids => ids.Distinct().Count() == ids.Count())
+                .WithMessage("Duplicate publisher IDs are not allowed");
+
             RuleForEach(c => c.PublisherIds)
-                .GreaterThan(0)
-                    .WithMessage("Publisher ID must be greater than zero")
-                .MustAsync(async (publisherId, ct) =>
-                {
-                    return await _publisherService.PublisherExists(publisherId, ct);
-                }).WithMessage("Publisher with ID {PropertyValue} does not exist.");
+                .GreaterThan(0).WithMessage("Publisher ID must be greater than zero")
+                .MustAsync(async (id, ct) => await _publisherService.PublisherExists(id, ct))
+                .WithMessage("Publisher with ID {PropertyValue} does not exist");
         });
     }
 }

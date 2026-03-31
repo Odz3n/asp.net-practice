@@ -481,4 +481,24 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
+# AppSettings files (contains sensitive data like connection strings, API keys)
+appsettings.json
+appsettings.*.json
+!appsettings.Development.json
+!appsettings.Production.json.template
 
+# User uploaded content
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.pdf
+*.doc
+*.docx
+!**/wwwroot/**/*.placeholder
+
+# Backup files
+*.bak
+*.tmp
+*.temp
