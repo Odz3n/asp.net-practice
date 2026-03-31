@@ -31,7 +31,6 @@ public class FileService
     /// </summary>
     /// <param name="contentType">The type of content (Books, Comics, Authors, etc.)</param>
     /// <param name="targetId">The ID of the entity</param>
-    /// <param name="targetTitle">The title/name of the entity (used for slug)</param>
     /// <param name="subContentType">The subfolder type (Covers, Photos, etc.)</param>
     /// <param name="file">The file to save</param>
     /// <param name="ct">Cancellation token</param>
@@ -39,7 +38,6 @@ public class FileService
     public async Task<string?> SaveFileAsync(
         ContentType contentType,
         int targetId,
-        string targetTitle,
         SubContentType subContentType,
         IFormFile file,
         CancellationToken ct)
@@ -47,9 +45,6 @@ public class FileService
         if (file == null || file.Length == 0)
             throw new ArgumentException("File was not provided.");
 
-        ValidateImageFile(file);
-
-        var slug = GenerateSlug(targetTitle);
         var contentTypeName = contentType.ToString().ToLowerInvariant();
         var subContentTypeName = subContentType.ToString().ToLowerInvariant();
 
@@ -69,16 +64,16 @@ public class FileService
             await file.CopyToAsync(stream, ct);
         }
 
-        return Path.Combine(contentTypeName, $"{targetId}", subContentTypeName, fileName)
+        return Path.Combine("uploads", contentTypeName, $"{targetId}", subContentTypeName, fileName)
             .Replace('\\', '/');
     }
 
     /// <summary>
     /// Convenience method for saving book covers
     /// </summary>
-    public async Task<string?> SaveBookCoverAsync(int bookId, string bookTitle, IFormFile file, CancellationToken ct)
+    public async Task<string?> SaveBookCoverAsync(int bookId, IFormFile file, CancellationToken ct)
     {
-        return await SaveFileAsync(ContentType.Books, bookId, bookTitle, SubContentType.Covers, file, ct);
+        return await SaveFileAsync(ContentType.Books, bookId, SubContentType.Covers, file, ct);
     }
     /// <summary>
     /// Deletes a file by its relative path
@@ -88,10 +83,13 @@ public class FileService
         if (string.IsNullOrEmpty(relativePath))
             return false;
 
-        var normalizedRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-
-        var fullPath = Path.Combine(_uploadsRoot, normalizedRelativePath);
+        var normalizedRelativePath = relativePath.Replace('/', Path.DirectorySeparatorChar).Replace("uploads\\", "");
+        Console.WriteLine(normalizedRelativePath);
         
+        var fullPath = Path.Combine(_uploadsRoot, normalizedRelativePath);
+        Console.WriteLine(fullPath);
+        
+
         if (!File.Exists(fullPath))
             return false;
 
@@ -113,22 +111,6 @@ public class FileService
 
         await Task.Run(() => Directory.Delete(entityFolder, true), ct);
         return true;
-    }
-    private void ValidateImageFile(IFormFile file)
-    {
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-        if (!allowedExtensions.Contains(extension))
-            throw new ArgumentException($"Unsupported extension: {extension}. " +
-                $"Allowed: {string.Join(", ", allowedExtensions)}");
-
-        var allowedMIMETypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
-        var mimeType = file.ContentType;
-
-        if (!allowedMIMETypes.Contains(mimeType))
-            throw new ArgumentException($"Unsupported MIME type: {mimeType}. " +
-                $"Allowed: {string.Join(", ", allowedMIMETypes)}");
     }
     private string GenerateSlug(string title)
     {

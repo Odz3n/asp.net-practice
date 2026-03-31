@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using hw_2_2_3_26.DTO;
+using hw_2_2_3_26.Helpers.Pagination;
 using hw_2_2_3_26.Helpers.QueryParameters;
 using hw_2_2_3_26.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -36,13 +37,14 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <summary>
         /// Retrieves the complete list of countries.
         /// </summary>
+        /// <param name="parameters">Country get parameters.</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A collection of <see cref="CountrySummaryDto"/> objects.</returns>
         /// <response code="200">Returns the list of countries.</response>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CountrySummaryDto>>> Get(CancellationToken ct)
+        public async Task<ActionResult<PagedResult<CountrySummaryDto>>> Get([FromQuery]CountryGetParameters parameters, CancellationToken ct)
         {
-            var result = await _countryService.GetAllCountries(ct);
+            var result = await _countryService.GetAllCountries(parameters, ct);
             return Ok(result);
         }
 
@@ -58,10 +60,6 @@ namespace hw_2_2_3_26.Controllers.v2
         public async Task<ActionResult<CountryDetailDto>> GetById(int id, CancellationToken ct)
         {
             var result = await _countryService.GetCountryById(id, ct);
-
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -90,12 +88,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="200">Country was successfully created.</response>
         /// <response code="400">Invalid country data was provided.</response>
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<CountrySummaryDto>> Create(
-            [FromBody] CreateCountryRequest request,
+            [FromForm] CreateCountryRequest request,
             CancellationToken ct)
         {
             var result = await _countryService.Create(request, ct);
-            return result;
+            return CreatedAtAction(nameof(GetById), new {id = result.Id}, result);
         }
 
         /// <summary>
@@ -109,11 +108,7 @@ namespace hw_2_2_3_26.Controllers.v2
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteById(int id, CancellationToken ct)
         {
-            var result = await _countryService.Delete(id, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _countryService.Delete(id, ct);
             return NoContent();
         }
 
@@ -127,16 +122,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Country was successfully updated.</response>
         /// <response code="404">Country with the specified id was not found.</response>
         [HttpPut("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(
             int id,
-            [FromBody] UpdateCountryRequest request,
+            [FromForm] UpdateCountryRequest request,
             CancellationToken ct)
         {
-            var result = await _countryService.Update(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _countryService.Update(id, request, ct);
             return NoContent();
         }
 
@@ -150,16 +142,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Country was successfully updated.</response>
         /// <response code="404">Country with the specified id was not found.</response>
         [HttpPatch("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> PartialUpdate(
             int id,
-            [FromBody] PartialUpdateCountryRequest request,
+            [FromForm] PartialUpdateCountryRequest request,
             CancellationToken ct)
         {
-            var result = await _countryService.PartialUpdate(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _countryService.PartialUpdate(id, request, ct);
             return NoContent();
         }
     }

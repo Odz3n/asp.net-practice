@@ -60,10 +60,6 @@ namespace hw_2_2_3_26.Controllers.v2
         public async Task<ActionResult<PublisherDetailDto>> GetById(int id, CancellationToken ct)
         {
             var result = await _publisherService.GetPublisherById(id, ct);
-
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -92,12 +88,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="200">Publisher was successfully created.</response>
         /// <response code="400">Invalid publisher data was provided.</response>
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<PublisherSummaryDto>> Create(
-            [FromBody] CreatePublisherRequest request,
+            [FromForm] CreatePublisherRequest request,
             CancellationToken ct)
         {
             var result = await _publisherService.Create(request, ct);
-            return result;
+            return CreatedAtAction(nameof(GetById), new {id = result.Id}, result);
         }
 
         /// <summary>
@@ -111,11 +108,7 @@ namespace hw_2_2_3_26.Controllers.v2
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteById(int id, CancellationToken ct)
         {
-            var result = await _publisherService.Delete(id, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _publisherService.Delete(id, ct);
             return NoContent();
         }
 
@@ -129,16 +122,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Publisher was successfully updated.</response>
         /// <response code="404">Publisher with the specified id was not found.</response>
         [HttpPut("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(
             int id,
-            [FromBody] UpdatePublisherRequest request,
+            [FromForm] UpdatePublisherRequest request,
             CancellationToken ct)
         {
-            var result = await _publisherService.Update(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _publisherService.Update(id, request, ct);
             return NoContent();
         }
 
@@ -152,16 +142,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Publisher was successfully updated.</response>
         /// <response code="404">Publisher with the specified id was not found.</response>
         [HttpPatch("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> PartialUpdate(
             int id,
-            [FromBody] PartialUpdatePublisherRequest request,
+            [FromForm] PartialUpdatePublisherRequest request,
             CancellationToken ct)
         {
-            var result = await _publisherService.PartialUpdate(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _publisherService.PartialUpdate(id, request, ct);
             return NoContent();
         }
     }

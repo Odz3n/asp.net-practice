@@ -59,9 +59,6 @@ namespace hw_2_2_3_26.Controllers.v2
         public async Task<ActionResult<AuthorDetailDto>> GetById(int id, CancellationToken ct)
         {
             var result = await _authorService.GetAuthorById(id, ct);
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -89,8 +86,9 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <returns>The created author summary.</returns>
         /// <response code="200">Returns the created author.</response>
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<AuthorSummaryDto>> Create(
-            [FromBody] CreateAuthorRequest request,
+            [FromForm] CreateAuthorRequest request,
             CancellationToken ct)
         {
             var result = await _authorService.Create(request, ct);
@@ -108,10 +106,7 @@ namespace hw_2_2_3_26.Controllers.v2
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteById(int id, CancellationToken ct)
         {
-            var result = await _authorService.Delete(id, ct);
-            if (!result)
-                return NotFound();
-
+            await _authorService.Delete(id, ct);
             return NoContent();
         }
 
@@ -125,15 +120,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Author updated successfully.</response>
         /// <response code="404">If the author is not found.</response>
         [HttpPut("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(
             int id,
-            [FromBody] UpdateAuthorRequest request,
+            [FromForm] UpdateAuthorRequest request,
             CancellationToken ct)
         {
-            var result = await _authorService.Update(id, request, ct);
-            if (!result)
-                return NotFound();
-
+            await _authorService.Update(id, request, ct);
             return NoContent();
         }
 
@@ -147,15 +140,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Author updated successfully.</response>
         /// <response code="404">If the author is not found.</response>
         [HttpPatch("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> PartialUpdate(
             int id,
-            [FromBody] PartialUpdateAuthorRequest request,
+            [FromForm] PartialUpdateAuthorRequest request,
             CancellationToken ct)
         {
-            var result = await _authorService.PartialUpdate(id, request, ct);
-            if (!result)
-                return NotFound();
-
+            await _authorService.PartialUpdate(id, request, ct);
             return NoContent();
         }
     }

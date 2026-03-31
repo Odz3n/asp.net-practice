@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using hw_2_2_3_26.Services;
 using Swashbuckle.AspNetCore.Annotations;
 using hw_2_2_3_26.Helpers.Pagination;
+using hw_2_2_3_26.Validators;
 
 namespace hw_2_2_3_26.Controllers.v2
 {
@@ -28,8 +29,7 @@ namespace hw_2_2_3_26.Controllers.v2
         /// Initializes a new instance of the <see cref="BooksController"/> class.
         /// </summary>
         /// <param name="bookService">Service for book-related operations.</param>
-        /// <param name="fileService">Service for files-related operations.</param>
-        public BooksController(IBookService bookService, FileService fileService)
+        public BooksController(IBookService bookService)
         {
             _bookService = bookService;
         }
@@ -42,7 +42,9 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <returns>A collection of <see cref="BookSummaryDto"/> objects.</returns>
         /// <response code="200">Returns the list of books.</response>
         [HttpGet]
-        public async Task<ActionResult<PagedResult<BookSummaryDto>>> Get([FromQuery] BookGetParameters parameters, CancellationToken ct)
+        public async Task<ActionResult<PagedResult<BookSummaryDto>>> Get(
+            [FromQuery] BookGetParameters parameters,
+            CancellationToken ct)
         {
             var res = await _bookService.GetAllBooks(parameters, ct);
             return Ok(res);
@@ -60,10 +62,6 @@ namespace hw_2_2_3_26.Controllers.v2
         public async Task<ActionResult<BookDetailDto>> GetById(int id, CancellationToken ct)
         {
             var target = await _bookService.GetBookById(id, ct);
-
-            if (target == null)
-                return NotFound();
-
             return Ok(target);
         }
 
@@ -80,11 +78,7 @@ namespace hw_2_2_3_26.Controllers.v2
             [FromQuery] BookSearchParameters parameters,
             CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(parameters.Title))
-                return BadRequest();
-
             var result = await _bookService.GetBooksByTitleAndAuthor(parameters, ct);
-
             return Ok(result);
         }
 
@@ -102,11 +96,7 @@ namespace hw_2_2_3_26.Controllers.v2
             [FromForm] CreateBookRequest request,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest();
-
             var bookDetail = await _bookService.Create(request, ct);
-
             return CreatedAtAction(nameof(GetById), new { id = bookDetail.Id }, bookDetail);
         }
 
@@ -127,14 +117,7 @@ namespace hw_2_2_3_26.Controllers.v2
             [FromForm] CreateBookRequest request,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest();
-
-            var result = await _bookService.Update(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _bookService.Update(id, request, ct);
             return NoContent();
         }
 
@@ -155,14 +138,7 @@ namespace hw_2_2_3_26.Controllers.v2
             [FromForm] UpdateBookRequest request,
             CancellationToken ct)
         {
-            if (request == null)
-                return BadRequest();
-
-            var result = await _bookService.PartialUpdate(id, request, ct);
-
-            if (!result)
-                return BadRequest();
-
+            await _bookService.PartialUpdate(id, request, ct);
             return NoContent();
         }
 
@@ -177,11 +153,7 @@ namespace hw_2_2_3_26.Controllers.v2
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteById(int id, CancellationToken ct)
         {
-            var result = await _bookService.Delete(id, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _bookService.Delete(id, ct);
             return NoContent();
         }
     }

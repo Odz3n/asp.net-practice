@@ -5,6 +5,7 @@ using hw_2_2_3_26.Helpers.QueryParameters;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using hw_2_2_3_26.Models;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace hw_2_2_3_26.Services;
 
@@ -21,14 +22,10 @@ public class GenreService : IGenreService
     {
         var newGenre = _mapper.Map<Genre>(request);
 
-        var validBookIds = await _db.Books
-            .Where(el => request.BookIds.Contains(el.Id))
-            .Select(el => el.Id)
-            .ToListAsync(ct);
-
-        newGenre.BookGenres = validBookIds
-            .Select(id => new BookGenre { BookId = id })
-            .ToList();
+        if (request.BookIds != null)
+            newGenre.BookGenres = request.BookIds
+                .Select(id => new BookGenre { BookId = id })
+                .ToList();
 
         await _db.Genres.AddAsync(newGenre, ct);
         await _db.SaveChangesAsync(ct);
@@ -42,7 +39,7 @@ public class GenreService : IGenreService
             .FirstOrDefaultAsync(el => el.Id == id, ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Genre not found");
 
         _db.Genres.Remove(target);
         await _db.SaveChangesAsync(ct);
@@ -60,11 +57,16 @@ public class GenreService : IGenreService
 
     public async Task<GenreDetailDto?> GetGenreById(int id, CancellationToken ct)
     {
-        return await _db.Genres
+        var target = await _db.Genres
             .AsNoTracking()
             .Where(el => el.Id == id)
             .ProjectTo<GenreDetailDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(ct);
+
+        if (target == null)
+            throw new KeyNotFoundException("Genre not found");
+
+        return target;
     }
 
     public async Task<IEnumerable<GenreDetailDto>> GetGenreBySearchParameters(GenreSearchParameters parameters, CancellationToken ct)
@@ -91,24 +93,17 @@ public class GenreService : IGenreService
             .FirstOrDefaultAsync(ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Genre not found");
 
         _mapper.Map(request, target);
 
         if (request.BookIds != null)
         {
-            var validBookIds = await _db.Books
-                .Where(el => request.BookIds.Contains(el.Id))
-                .Select(el => el.Id)
-                .ToListAsync(ct);
-
-            target.BookGenres
-                .Where(el => !validBookIds.Contains(el.BookId))
-                .ToList()
-                .ForEach(el => target.BookGenres.Remove(el));
-
-            foreach (var idToAdd in validBookIds.Except(target.BookGenres.Select(el => el.BookId)))
-                target.BookGenres.Add(new BookGenre { BookId = idToAdd });
+            UpdateCollection(
+                target.BookGenres,
+                request.BookIds,
+                bg => bg.BookId,
+                id => new BookGenre { BookId = id });
         }
 
         await _db.SaveChangesAsync(ct);
@@ -123,24 +118,47 @@ public class GenreService : IGenreService
             .FirstOrDefaultAsync(ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Genre not found");
 
         _mapper.Map(request, target);
 
-        var validBookIds = await _db.Books
-            .Where(el => request.BookIds.Contains(el.Id))
-            .Select(el => el.Id)
-            .ToListAsync(ct);
-
-        target.BookGenres
-            .Where(el => !validBookIds.Contains(el.BookId))
-            .ToList()
-            .ForEach(el => target.BookGenres.Remove(el));
-
-        foreach (var idToAdd in validBookIds.Except(target.BookGenres.Select(el => el.BookId)))
-            target.BookGenres.Add(new BookGenre { BookId = idToAdd });
+        if (request.BookIds != null)
+        {
+            UpdateCollection(
+                target.BookGenres,
+                request.BookIds,
+                bg => bg.BookId,
+                id => new BookGenre { BookId = id });
+        }
 
         await _db.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<bool> GenreExists(int id, CancellationToken ct)
+    {
+        return await _db.Genres.AnyAsync(el => el.Id == id, ct);
+    }
+
+    private void UpdateCollection<TEntity, TValue>(
+        ICollection<TEntity> collection,
+        IEnumerable<TValue> validIds,
+        Func<TEntity, TValue> getId,
+        Func<TValue, TEntity> createEntity
+    ) where TEntity : class
+    {
+        var validIdsList = validIds.ToList();
+        var toRemove = collection
+            .Where(item => !validIdsList.Contains(getId(item)))
+            .ToList();
+
+        foreach (var item in toRemove)
+            collection.Remove(item);
+
+        var existingIds = collection.Select(getId).ToList();
+        var idsToAdd = validIdsList.Except(existingIds).ToList();
+
+        foreach (var id in idsToAdd)
+            collection.Add(createEntity(id));
     }
 }

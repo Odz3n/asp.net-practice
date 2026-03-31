@@ -5,6 +5,8 @@ using hw_2_2_3_26.Helpers.QueryParameters;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Data;
 using hw_2_2_3_26.Models;
+using hw_2_2_3_26.Helpers.Pagination;
+using hw_2_2_3_26.Helpers.Extensions;
 
 namespace hw_2_2_3_26.Services;
 
@@ -22,16 +24,10 @@ public class CountryService : ICountryService
         var newCountry = _mapper.Map<Country>(request);
 
         if (request.AuthorIds != null)
-        {
-            var validAuthorIds = await GetValidAuthorIds(request.AuthorIds, ct);
-            await SyncCountryAuthors(newCountry, validAuthorIds, ct);
-        }
+            await SyncCountryAuthors(newCountry, request.AuthorIds, ct);
 
         if (request.PublisherIds != null)
-        {
-            var validPublisherIds = await GetValidPublisherIds(request.PublisherIds, ct);
-            await SyncCountryPublishers(newCountry, validPublisherIds, ct);
-        }
+            await SyncCountryPublishers(newCountry, request.PublisherIds, ct);
 
         await _db.Countries.AddAsync(newCountry, ct);
         await _db.SaveChangesAsync(ct);
@@ -42,30 +38,39 @@ public class CountryService : ICountryService
     {
         var target = await _db.Countries
             .FirstOrDefaultAsync(el => el.Id == id, ct);
-        
+
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Country not found");
 
         _db.Countries.Remove(target);
         await _db.SaveChangesAsync(ct);
         return true;
     }
 
-    public async Task<IEnumerable<CountrySummaryDto>> GetAllCountries(CancellationToken ct)
+    public async Task<PagedResult<CountrySummaryDto>> GetAllCountries(CountryGetParameters parameters, CancellationToken ct)
     {
         return await _db.Countries
             .AsNoTracking()
-            .ProjectTo<CountrySummaryDto>(_mapper.ConfigurationProvider)
-            .ToListAsync(ct);
+            .ApplyFilters(parameters)
+            .ApplySorting(parameters)
+            .ToPagedResultAsync<Country, CountrySummaryDto>(
+                parameters,
+                _mapper.ConfigurationProvider,
+                ct);
     }
 
     public async Task<CountryDetailDto?> GetCountryById(int id, CancellationToken ct)
     {
-        return await _db.Countries
+        var target = await _db.Countries
             .AsNoTracking()
             .Where(el => el.Id == id)
             .ProjectTo<CountryDetailDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(ct);
+
+        if (target == null)
+            throw new KeyNotFoundException("Country not found");
+
+        return target;
     }
 
     public async Task<IEnumerable<CountryDetailDto>> GetCountryBySearchParameters(CountrySearchParameters parameters, CancellationToken ct)
@@ -75,7 +80,7 @@ public class CountryService : ICountryService
         if (parameters.Name != null)
             query = query
                 .Where(el => EF.Functions.Like(el.Name, $"%{parameters.Name}%"));
-        
+
         return await query
             .ProjectTo<CountryDetailDto>(_mapper.ConfigurationProvider)
             .ToListAsync(ct);
@@ -90,22 +95,17 @@ public class CountryService : ICountryService
             .FirstOrDefaultAsync(ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Country not found");
+
 
         _mapper.Map(request, target);
 
         if (request.AuthorIds != null)
-        {
-            var validAuthorIds = await GetValidAuthorIds(request.AuthorIds, ct);
-            await SyncCountryAuthors(target, validAuthorIds, ct);
-        }
+            await SyncCountryAuthors(target, request.AuthorIds, ct);
 
         if (request.PublisherIds != null)
-        {
-            var validPublisherIds = await GetValidPublisherIds(request.PublisherIds, ct);
-            await SyncCountryPublishers(target, validPublisherIds, ct);
-        }
-        
+            await SyncCountryPublishers(target, request.PublisherIds, ct);
+
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -119,31 +119,23 @@ public class CountryService : ICountryService
             .FirstOrDefaultAsync(ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Country not found");
+
 
         _mapper.Map(request, target);
 
-        var validAuthorIds = await GetValidAuthorIds(request.AuthorIds, ct);
-        await SyncCountryAuthors(target, validAuthorIds, ct);
-        var validPublisherIds = await GetValidPublisherIds(request.PublisherIds, ct);
-        await SyncCountryPublishers(target, validPublisherIds, ct);
-        
+        if (request.AuthorIds != null)
+            await SyncCountryAuthors(target, request.AuthorIds, ct);
+
+        if (request.PublisherIds != null)
+            await SyncCountryPublishers(target, request.PublisherIds, ct);
+
         await _db.SaveChangesAsync(ct);
         return true;
     }
-    private async Task<IEnumerable<int>> GetValidAuthorIds(IEnumerable<int> ids, CancellationToken ct)
+    public async Task<bool> CountryExists(int? id, CancellationToken ct)
     {
-        return await _db.Authors
-            .Where(el => ids.Contains(el.Id))
-            .Select(el => el.Id)
-            .ToListAsync(ct);
-    }
-    private async Task<IEnumerable<int>> GetValidPublisherIds(IEnumerable<int> ids, CancellationToken ct)
-    {
-        return await _db.Publishers
-            .Where(el => ids.Contains(el.Id))
-            .Select(el => el.Id)
-            .ToListAsync(ct);
+        return await _db.Countries.AnyAsync(el => el.Id == id, ct);
     }
     private async Task SyncCountryAuthors(Country country, IEnumerable<int> validIds, CancellationToken ct)
     {
@@ -153,7 +145,7 @@ public class CountryService : ICountryService
             .Where(el => !validIds.Contains(el.Id))
             .ToList();
 
-        foreach(var item in toRemove)
+        foreach (var item in toRemove)
             country.Authors.Remove(item);
 
         var toAddIds = validIds.Except(currentIds);
@@ -163,7 +155,7 @@ public class CountryService : ICountryService
             .ToListAsync(ct);
 
         foreach (var item in authorsToAdd)
-            country.Authors.Add(item);        
+            country.Authors.Add(item);
     }
     private async Task SyncCountryPublishers(Country country, IEnumerable<int> validIds, CancellationToken ct)
     {
@@ -173,7 +165,7 @@ public class CountryService : ICountryService
             .Where(el => !validIds.Contains(el.Id))
             .ToList();
 
-        foreach(var item in toRemove)
+        foreach (var item in toRemove)
             country.Publishers.Remove(item);
 
         var toAddIds = validIds.Except(currentIds);
@@ -183,6 +175,6 @@ public class CountryService : ICountryService
             .ToListAsync(ct);
 
         foreach (var item in publishersToAdd)
-            country.Publishers.Add(item);        
+            country.Publishers.Add(item);
     }
 }

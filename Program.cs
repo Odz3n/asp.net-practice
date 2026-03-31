@@ -6,9 +6,14 @@ using Microsoft.OpenApi;
 using MyApp.Data;
 using hw_2_2_3_26.Services;
 using Microsoft.Extensions.FileProviders;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using hw_2_2_3_26.Repository;
+using hw_2_2_3_26.Filters;
+using hw_2_2_3_26.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddControllers();
+
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -30,7 +35,15 @@ builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IPublisherService, PublisherService>();
+builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<FileService>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+});
 
 builder.Services.AddAutoMapper(cfg => {}, typeof(Program));
 
@@ -44,6 +57,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v2", new OpenApiInfo { Title = "API V2", Version = "v2" });
 });
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

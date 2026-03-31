@@ -58,10 +58,6 @@ namespace hw_2_2_3_26.Controllers.v2
         public async Task<ActionResult<GenreDetailDto>> GetById(int id, CancellationToken ct)
         {
             var result = await _genreService.GetGenreById(id, ct);
-
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -90,12 +86,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="200">Genre was successfully created.</response>
         /// <response code="400">Invalid genre data was provided.</response>
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<GenreSummaryDto>> Create(
-            [FromBody] CreateGenreRequest request,
+            [FromForm] CreateGenreRequest request,
             CancellationToken ct)
         {
             var result = await _genreService.Create(request, ct);
-            return result;
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
         /// <summary>
@@ -109,11 +106,7 @@ namespace hw_2_2_3_26.Controllers.v2
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteById(int id, CancellationToken ct)
         {
-            var result = await _genreService.Delete(id, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _genreService.Delete(id, ct);
             return NoContent();
         }
 
@@ -127,16 +120,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Genre was successfully updated.</response>
         /// <response code="404">Genre with the specified id was not found.</response>
         [HttpPut("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(
             int id,
-            [FromBody] UpdateGenreRequest request,
+            [FromForm] UpdateGenreRequest request,
             CancellationToken ct)
         {
-            var result = await _genreService.Update(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _genreService.Update(id, request, ct);
             return NoContent();
         }
 
@@ -150,16 +140,13 @@ namespace hw_2_2_3_26.Controllers.v2
         /// <response code="204">Genre was successfully updated.</response>
         /// <response code="404">Genre with the specified id was not found.</response>
         [HttpPatch("{id:int}")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> PartialUpdate(
             int id,
-            [FromBody] PartialUpdateGenreRequest request,
+            [FromForm] PartialUpdateGenreRequest request,
             CancellationToken ct)
         {
-            var result = await _genreService.PartialUpdate(id, request, ct);
-
-            if (!result)
-                return NotFound();
-
+            await _genreService.PartialUpdate(id, request, ct);
             return NoContent();
         }
     }

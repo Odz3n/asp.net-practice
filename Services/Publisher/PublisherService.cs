@@ -23,11 +23,10 @@ public class PublisherService : IPublisherService
     {
         var newPublisher = _mapper.Map<Publisher>(request);
 
-        var validBookIds = await GetValidBookIds(request.BookIds, ct);
-        await SyncPublisherBooks(newPublisher, validBookIds, ct);
-
-        var validCountryId = await GetValidCountryId(request.CountryId, ct);
-        await SyncPublisherCountry(newPublisher, validCountryId, ct);
+        if (request.BookIds != null)
+            await SyncPublisherBooks(newPublisher, request.BookIds, ct);
+        if (request.CountryId != null)
+            await SyncPublisherCountry(newPublisher, request.CountryId, ct);
 
         await _db.AddAsync(newPublisher, ct);
 
@@ -39,7 +38,7 @@ public class PublisherService : IPublisherService
     {
         var target = await _db.Publishers.FirstOrDefaultAsync(el => el.Id == id, ct);
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Publisher not found");
 
         _db.Publishers.Remove(target);
         await _db.SaveChangesAsync(ct);
@@ -57,11 +56,16 @@ public class PublisherService : IPublisherService
 
     public async Task<PublisherDetailDto?> GetPublisherById(int id, CancellationToken ct)
     {
-        return await _db.Publishers
+        var target = await _db.Publishers
             .AsNoTracking()
             .Where(el => el.Id == id)
             .ProjectTo<PublisherDetailDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(ct);
+
+        if (target == null)
+            throw new KeyNotFoundException("Publisher not found");
+
+        return target;
     }
 
     public async Task<IEnumerable<PublisherDetailDto>> GetPublisherBySearchParameters(PublisherSearchParameters parameters, CancellationToken ct)
@@ -95,21 +99,15 @@ public class PublisherService : IPublisherService
             .FirstOrDefaultAsync(ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Publisher not found");
 
         _mapper.Map(request, target);
 
         if (request.BookIds != null)
-        {
-            var validBookIds = await GetValidBookIds(request.BookIds, ct);
-            await SyncPublisherBooks(target, validBookIds, ct);
-        }
+            await SyncPublisherBooks(target, request.BookIds, ct);
 
         if (request.CountryId.HasValue)
-        {
-            var validCountryId = await GetValidCountryId(request.CountryId.Value, ct);
-            await SyncPublisherCountry(target, validCountryId, ct);
-        }
+            await SyncPublisherCountry(target, request.CountryId, ct);
 
         await _db.SaveChangesAsync(ct);
         return true;
@@ -124,34 +122,23 @@ public class PublisherService : IPublisherService
             .FirstOrDefaultAsync(ct);
 
         if (target == null)
-            return false;
+            throw new KeyNotFoundException("Publisher not found");
 
         _mapper.Map(request, target);
 
-        var validBookIds = await GetValidBookIds(request.BookIds, ct);
-        await SyncPublisherBooks(target, validBookIds, ct);
+        if (request.BookIds != null)
+            await SyncPublisherBooks(target, request.BookIds, ct);
 
-        var validCountryId = await GetValidCountryId(request.CountryId, ct);
-        await SyncPublisherCountry(target, validCountryId, ct);
+        if (request.CountryId.HasValue)
+            await SyncPublisherCountry(target, request.CountryId, ct);
 
         await _db.SaveChangesAsync(ct);
         return true;
     }
-    private async Task<IEnumerable<int>> GetValidBookIds(IEnumerable<int> ids, CancellationToken ct)
+    public async Task<bool> PublisherExists(int? publisherId, CancellationToken ct)
     {
-        return await _db.Books
-            .Where(el => ids.Contains(el.Id))
-            .Select(el => el.Id)
-            .ToListAsync(ct);
+        return await _db.Publishers.AnyAsync(el => el.Id == publisherId, ct);
     }
-    private async Task<int?> GetValidCountryId(int id, CancellationToken ct)
-    {
-        var exists = await _db.Countries
-        .AnyAsync(el => el.Id == id, ct);
-
-        return exists ? id : null;
-    }
-
     private async Task SyncPublisherBooks(Publisher publisher, IEnumerable<int> validIds, CancellationToken ct)
     {
         var currentIds = publisher.Books.Select(el => el.Id).ToList();

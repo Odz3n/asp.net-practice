@@ -13,4 +13,5 @@ public interface IPublisherService
     Task<bool> Update(int id, UpdatePublisherRequest request, CancellationToken ct);
     Task<bool> PartialUpdate(int id, PartialUpdatePublisherRequest request, CancellationToken ct);
     Task<bool> Delete(int id, CancellationToken ct);
+    Task<bool> PublisherExists(int? PublisherId, CancellationToken ct);
 }

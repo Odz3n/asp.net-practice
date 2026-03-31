@@ -12,5 +12,7 @@ public interface IAuthorService
     Task<AuthorSummaryDto> Create(CreateAuthorRequest request, CancellationToken ct);
     Task<bool> Update(int id, UpdateAuthorRequest request, CancellationToken ct);
     Task<bool> PartialUpdate(int id, PartialUpdateAuthorRequest request, CancellationToken ct);
+    Task<bool> AuthorExists(int authorId, CancellationToken ct);
+    Task<bool> AllAuthorsExist(IEnumerable<int> ids, CancellationToken ct);
     Task<bool> Delete(int id, CancellationToken ct);
 }

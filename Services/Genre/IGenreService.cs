@@ -12,4 +12,5 @@ public interface IGenreService
     Task<bool> Update(int id, UpdateGenreRequest request, CancellationToken ct);
     Task<bool> PartialUpdate(int id, PartialUpdateGenreRequest request, CancellationToken ct);
     Task<bool> Delete(int id, CancellationToken ct);
+    Task<bool> GenreExists(int id, CancellationToken ct);
 }
