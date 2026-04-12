@@ -19,7 +19,7 @@ public class BookRepository : IBookRepository
         await _db.AddAsync(book, ct);
     }
 
-    public async Task<Book?> GetUntrackedBookByIdAsync(int id, CancellationToken ct)
+    public async Task<Book?> GetUntrackedBookByIdAsync(int? id, CancellationToken ct)
     {
         return await _db.Books
             .AsNoTracking()
@@ -33,7 +33,7 @@ public class BookRepository : IBookRepository
             .FirstOrDefaultAsync(el => el.Id == id, ct);
     }
 
-    public async Task<Book?> GetTrackedBookByIdAsync(int id, CancellationToken ct)
+    public async Task<Book?> GetTrackedBookByIdAsync(int? id, CancellationToken ct)
     {
         return await _db.Books
             .Where(el => el.Id == id)
@@ -76,7 +76,7 @@ public class BookRepository : IBookRepository
     {
         await _db.SaveChangesAsync(ct);
     }
-    public void UpdateBookAuthors(Book book, IEnumerable<int> authorIds)
+    public void UpdateBookAuthors(Book book, IEnumerable<int>? authorIds)
     {
         UpdateCollection(
             book.BookAuthors,
@@ -84,7 +84,7 @@ public class BookRepository : IBookRepository
             el => el.AuthorId,
             id => new BookAuthor { AuthorId = id });
     }
-    public void UpdateBookGenres(Book book, IEnumerable<int> genreIds)
+    public void UpdateBookGenres(Book book, IEnumerable<int>? genreIds)
     {
         UpdateCollection(
             book.BookGenres,
@@ -94,7 +94,7 @@ public class BookRepository : IBookRepository
     }
     private void UpdateCollection<TEntity, TValue>(
         ICollection<TEntity> collection,
-        IEnumerable<TValue> validIds,
+        IEnumerable<TValue>? validIds,
         Func<TEntity, TValue> getId,
         Func<TValue, TEntity> createEntity
     ) where TEntity : class
@@ -114,7 +114,7 @@ public class BookRepository : IBookRepository
             collection.Add(createEntity(id));
     }
 
-    public async Task<bool> BookExists(int id, CancellationToken ct)
+    public async Task<bool> BookExistsAsync(int? id, CancellationToken ct)
     {
         return await _db.Books.AnyAsync(el => el.Id == id, ct);
     }

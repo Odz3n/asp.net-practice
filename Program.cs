@@ -7,7 +7,6 @@ using MyApp.Data;
 using hw_2_2_3_26.Services;
 using Microsoft.Extensions.FileProviders;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using hw_2_2_3_26.Repository;
 using hw_2_2_3_26.Filters;
 using hw_2_2_3_26.Middleware;
@@ -36,7 +35,7 @@ builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IPublisherService, PublisherService>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
-builder.Services.AddScoped<FileService>();
+builder.Services.AddScoped<IFileService, FileService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

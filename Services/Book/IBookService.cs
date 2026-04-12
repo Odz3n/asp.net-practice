@@ -10,8 +10,8 @@ public interface IBookService
     Task<BookDetailDto?> GetBookById(int id, CancellationToken ct);
     Task<IEnumerable<BookDetailDto>> GetBooksByTitleAndAuthor(BookSearchParameters parameters, CancellationToken ct);
     Task<BookDetailDto> Create(CreateBookRequest request, CancellationToken ct);
-    Task<bool> Update(int id, CreateBookRequest request, CancellationToken ct);
-    Task<bool> PartialUpdate(int id, UpdateBookRequest request, CancellationToken ct);
-    Task<bool> Delete(int id, CancellationToken ct);
-    Task<bool> BookExists(int id, CancellationToken ct);
+    Task<bool> Update(int? id, CreateBookRequest request, CancellationToken ct);
+    Task<bool> PartialUpdate(int? id, UpdateBookRequest request, CancellationToken ct);
+    Task<bool> Delete(int? id, CancellationToken ct);
+    Task<bool> BookExists(int? id, CancellationToken ct);
 }

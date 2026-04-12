@@ -1,21 +1,6 @@
 namespace hw_2_2_3_26.Services;
 
-public enum ContentType
-{
-    Books,
-    Comics,
-    Authors,
-    Publishers,
-    Magazines
-}
-public enum SubContentType
-{
-    Covers,
-    Photos,
-    Samples,
-    Thumbnails
-}
-public class FileService
+public class FileService: IFileService
 {
     private readonly IWebHostEnvironment _env;
     private readonly string _uploadsRoot;

@@ -12,9 +12,9 @@ namespace hw_2_2_3_26.Services;
 public class BookService : IBookService
 {
     private readonly IMapper _mapper;
-    private readonly FileService _fileService;
+    private readonly IFileService _fileService;
     private readonly IBookRepository _bookRepository;
-    public BookService(IMapper mapper, FileService fileService, IBookRepository bookRepository)
+    public BookService(IMapper mapper, IFileService fileService, IBookRepository bookRepository)
     {
         _mapper = mapper;
         _fileService = fileService;
@@ -40,7 +40,7 @@ public class BookService : IBookService
         return _mapper.Map<Book, BookDetailDto>(newBook);
     }
 
-    public async Task<bool> Delete(int id, CancellationToken ct)
+    public async Task<bool> Delete(int? id, CancellationToken ct)
     {
         var target = await _bookRepository.GetTrackedBookByIdAsync(id, ct);
 
@@ -89,7 +89,7 @@ public class BookService : IBookService
         return query.ProjectTo<BookDetailDto>(_mapper.ConfigurationProvider);
     }
 
-    public async Task<bool> PartialUpdate(int id, UpdateBookRequest request, CancellationToken ct)
+    public async Task<bool> PartialUpdate(int? id, UpdateBookRequest request, CancellationToken ct)
     {
         var target = await _bookRepository.GetTrackedBookByIdAsync(id, ct);
 
@@ -109,7 +109,7 @@ public class BookService : IBookService
         return true;
     }
 
-    public async Task<bool> Update(int id, CreateBookRequest request, CancellationToken ct)
+    public async Task<bool> Update(int? id, CreateBookRequest request, CancellationToken ct)
     {
         var target = await _bookRepository.GetTrackedBookByIdAsync(id, ct);
 
@@ -128,9 +128,9 @@ public class BookService : IBookService
         await _bookRepository.SaveChangesAsync(ct);
         return true;
     }
-    public async Task<bool> BookExists(int id, CancellationToken ct)
+    public async Task<bool> BookExists(int? id, CancellationToken ct)
     {
-        return await _bookRepository.BookExists(id, ct);
+        return await _bookRepository.BookExistsAsync(id, ct);
     }
     private async Task UpdateBookCovers(Book book, IEnumerable<IFormFile> covers, CancellationToken ct)
     {
