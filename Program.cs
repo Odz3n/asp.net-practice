@@ -10,6 +10,9 @@ using FluentValidation;
 using hw_2_2_3_26.Repository;
 using hw_2_2_3_26.Filters;
 using hw_2_2_3_26.Middleware;
+using hw_2_2_3_26.Models;
+using Microsoft.AspNetCore.Identity;
+using Practice.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlClient"));
 });
 
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IGenreService, GenreService>();

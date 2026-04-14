@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using hw_2_2_3_26.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace MyApp.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options) { }
