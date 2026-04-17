@@ -27,7 +27,7 @@ public class ExceptionMiddleware
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/problem+json";
-        
+
         context.Response.StatusCode = exception switch
         {
             ArgumentException or InvalidOperationException => StatusCodes.Status400BadRequest,

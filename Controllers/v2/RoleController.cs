@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Practice.Services;
 using Asp.Versioning;
 using Practice.DTO;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Practice.Controllers.V2;
 
 [ApiVersion(2.0)]
 [ApiController]
+[Authorize]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class RoleController : ControllerBase
 {

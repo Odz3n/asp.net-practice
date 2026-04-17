@@ -13,6 +13,10 @@ using hw_2_2_3_26.Middleware;
 using hw_2_2_3_26.Models;
 using Microsoft.AspNetCore.Identity;
 using Practice.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using hw_2_2_3_26.Settings;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,15 +33,40 @@ builder.Services.AddApiVersioning(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-   options.UseSqlServer(builder.Configuration.GetConnectionString("SqlClient"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlClient"));
 });
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddRoles<IdentityRole>()
+    .AddSignInManager<SignInManager<ApplicationUser>>();
+
+var jwtSettings = builder.Configuration
+    .GetSection("JwtSettings")
+    .Get<JwtSettings>()!;
+builder.Services.AddSingleton(jwtSettings);
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+        ValidateIssuerSigningKey = true
+    };
+});
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IGenreService, GenreService>();
@@ -53,7 +82,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<ValidationFilter>();
 });
 
-builder.Services.AddAutoMapper(cfg => {}, typeof(Program));
+builder.Services.AddAutoMapper(cfg => { }, typeof(Program));
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -63,6 +92,20 @@ builder.Services.AddSwaggerGen(options =>
     options.EnableAnnotations();
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "API V1", Version = "v1" });
     options.SwaggerDoc("v2", new OpenApiInfo { Title = "API V2", Version = "v2" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        In = ParameterLocation.Header,
+        Description = "Provide token"
+    });
+
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", doc)] = new List<string>()
+    });
 });
 var app = builder.Build();
 
@@ -82,6 +125,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -89,6 +133,10 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads"
 });
 
-app.MapGet("/", () => "Hello World!");
+// app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 app.Run();

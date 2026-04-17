@@ -6,5 +6,5 @@ namespace Practice.Services;
 public interface IAuthService
 {
     Task<IdentityResult> RegisterAsync(RegisterDto register);
-    Task<SignInResult> LoginAsync(LoginDto login);
+    Task<string?> LoginAsync(LoginDto login);
 }

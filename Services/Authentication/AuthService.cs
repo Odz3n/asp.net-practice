@@ -1,4 +1,5 @@
 using hw_2_2_3_26.Models;
+using hw_2_2_3_26.Services;
 using Microsoft.AspNetCore.Identity;
 using Practice.DTO;
 
@@ -7,28 +8,28 @@ namespace Practice.Services;
 public class AuthService: IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly TokenService _tokenService;
     public AuthService(
-        UserManager<ApplicationUser> userManager, 
-        SignInManager<ApplicationUser> signInManager)
+        UserManager<ApplicationUser> userManager,
+        TokenService tokenService)
     {
         _userManager = userManager;
-        _signInManager = signInManager;
+        _tokenService = tokenService;
     }
 
-    public async Task<SignInResult> LoginAsync(LoginDto login)
+    public async Task<string?> LoginAsync(LoginDto login)
     {
-        Console.WriteLine("\n\n");
-        
-        Console.WriteLine(login.Email);
-        Console.WriteLine(login.Password);
-        
-        Console.WriteLine("\n\n");
-        return await _signInManager.PasswordSignInAsync(
-            login.Email,
-            login.Password,
-            isPersistent: false,
-            lockoutOnFailure: false);
+        var user = await _userManager.FindByEmailAsync(login.Email);
+        if (user == null)
+            return null;
+
+        var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, login.Password);
+        if (!isPasswordCorrect)
+            return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return _tokenService.GenerateToken(user, roles);
     }
 
     public async Task<IdentityResult> RegisterAsync(RegisterDto register)

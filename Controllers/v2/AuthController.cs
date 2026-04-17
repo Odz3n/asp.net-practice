@@ -34,9 +34,9 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> LoginAsync(LoginDto login)
     {
-        var result = await _authService.LoginAsync(login);
-        if (result.Succeeded)
-            return Ok(new { message = "Successfully logined!" });
+        var token = await _authService.LoginAsync(login);
+        if (token != null)
+            return Ok(new { token });
         return Unauthorized(new
         {
             message = "Login error! Invalid email or password.",
