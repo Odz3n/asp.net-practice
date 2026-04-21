@@ -17,6 +17,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using hw_2_2_3_26.Settings;
 using System.Text;
+using MediatR;
+using hw_2_2_3_26.Behaviors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,6 +108,12 @@ builder.Services.AddSwaggerGen(options =>
     {
         [new OpenApiSecuritySchemeReference("Bearer", doc)] = new List<string>()
     });
+});
+
+builder.Services.AddMediatR(cgf =>
+{
+    cgf.RegisterServicesFromAssemblyContaining<Program>();
+    cgf.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
 });
 var app = builder.Build();
 

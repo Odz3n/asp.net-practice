@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,6 +31,7 @@ public class ExceptionMiddleware
 
         context.Response.StatusCode = exception switch
         {
+            ValidationException => StatusCodes.Status400BadRequest,
             ArgumentException or InvalidOperationException => StatusCodes.Status400BadRequest,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status500InternalServerError
@@ -40,6 +42,7 @@ public class ExceptionMiddleware
             Status = context.Response.StatusCode,
             Title = exception switch
             {
+                ValidationException => "Bad Request",
                 ArgumentException => "Bad Request",
                 KeyNotFoundException => "Not Found",
                 _ => "Internal Server Error"

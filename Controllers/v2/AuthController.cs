@@ -1,4 +1,8 @@
+using System.Security.Cryptography.X509Certificates;
 using Asp.Versioning;
+using hw_2_2_3_26.Features.Auth.Commands.Login;
+using hw_2_2_3_26.Features.Auth.Commands.Register;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Practice.DTO;
 using Practice.Services;
@@ -14,32 +18,30 @@ namespace Practice.Controllers.V2;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IMediator _mediator;
     public AuthController(
-        IAuthService authService)
+        IAuthService authService,
+        IMediator mediator)
     {
         _authService = authService;
+        _mediator = mediator;
     }
     [HttpPost("register")]
-    public async Task<IActionResult> RegisterAsync(RegisterDto register)
+    public async Task<IActionResult> RegisterAsync(
+        RegisterCommand command,
+        CancellationToken cancellationToken)
     {
-        var result = await _authService.RegisterAsync(register);
-        if (result.Succeeded)
-            return Ok(new { message = "Successfully registered!" });
-        return BadRequest(new
-        {
-            message = "Registration error!",
-            errors = result.Errors
-        });
+        var result = await _mediator.Send(command, cancellationToken);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+        return StatusCode(201, result);
     }
     [HttpPost("login")]
-    public async Task<IActionResult> LoginAsync(LoginDto login)
+    public async Task<IActionResult> LoginAsync(
+        LoginCommand command,
+        CancellationToken cancellationToken)
     {
-        var token = await _authService.LoginAsync(login);
-        if (token != null)
-            return Ok(new { token });
-        return Unauthorized(new
-        {
-            message = "Login error! Invalid email or password.",
-        });
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
     }
 }
